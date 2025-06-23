@@ -3,11 +3,24 @@ import { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, role: 'client' | 'freelancer') => Promise<void>;
+  login: (email: string, password: string, username?: string) => Promise<void>;
+  register: (
+    name: string,
+    phone: string,
+    location: string,
+    dob: string,
+    username: string,
+    email: string,
+    password: string,
+    isClient: boolean,
+    isFreelancer: boolean,
+    profilePicture?: string
+  ) => Promise<void>;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => void;
   isLoading: boolean;
+  forgotPassword: (email: string, newPassword: string) => Promise<void>;
+  resetPassword: (email: string, oldPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,60 +37,13 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Test credentials
-const testUsers = {
-  'freelancer@test.com': {
-    id: '1',
-    email: 'freelancer@test.com',
-    name: 'Sarah Johnson',
-    role: 'freelancer' as const,
-    bio: 'Full-stack developer with 5+ years of experience in React, Node.js, and cloud technologies.',
-    skills: ['React', 'Node.js', 'TypeScript', 'AWS', 'MongoDB'],
-    hourlyRate: 75,
-    rating: 4.9,
-    totalReviews: 127,
-    location: 'San Francisco, CA',
-    joinedDate: '2020-01-15',
-    isOnline: true,
-    completedJobs: 156,
-    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400',
-    portfolio: [
-      {
-        id: '1',
-        title: 'E-commerce Platform',
-        description: 'Built a full-stack e-commerce solution with React and Node.js',
-        image: 'https://images.pexels.com/photos/230544/pexels-photo-230544.jpeg?auto=compress&cs=tinysrgb&w=800',
-        link: 'https://example.com',
-        tags: ['React', 'Node.js', 'MongoDB']
-      }
-    ],
-    profileComplete: true
-  },
-  'client@test.com': {
-    id: '2',
-    email: 'client@test.com',
-    name: 'Tech Startup Inc.',
-    role: 'client' as const,
-    bio: 'Growing tech startup looking for talented developers and designers to help build innovative products.',
-    location: 'New York, NY',
-    joinedDate: '2023-01-15',
-    rating: 4.7,
-    totalReviews: 23,
-    completedJobs: 15,
-    avatar: 'https://images.pexels.com/photos/3184287/pexels-photo-3184287.jpeg?auto=compress&cs=tinysrgb&w=400',
-    companySize: '10-50',
-    industry: 'Technology',
-    website: 'https://techstartup.com',
-    profileComplete: true
-  }
-};
+const API_BASE = 'https://freelance-web-seven.vercel.app/api/v1';
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user on app load
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -85,47 +51,101 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, username?: string) => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check test credentials
-    if (password === 'test123' && testUsers[email as keyof typeof testUsers]) {
-      const mockUser = testUsers[email as keyof typeof testUsers];
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-    } else {
-      throw new Error('Invalid credentials');
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, username: username || email })
+      });
+      if (!res.ok) throw new Error('Login failed');
+      // You may want to parse the user/token from the response
+      const data = await res.json();
+      // Save user/token as needed
+      setUser(data.user || null);
+      localStorage.setItem('user', JSON.stringify(data.user));
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
-  const register = async (email: string, password: string, name: string, role: 'client' | 'freelancer') => {
+  const register = async (
+    name: string,
+    phone: string,
+    location: string,
+    dob: string,
+    username: string,
+    email: string,
+    password: string,
+    isClient: boolean,
+    isFreelancer: boolean,
+    profilePicture?: string
+  ) => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const newUser: User = {
-      id: Date.now().toString(),
-      email,
-      name,
-      role,
-      joinedDate: new Date().toISOString(),
-      isOnline: true,
-      rating: 0,
-      totalReviews: 0,
-      completedJobs: 0,
-      profileComplete: false
-    };
-    
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    setIsLoading(false);
+    try {
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          phone,
+          location,
+          dob,
+          username,
+          email,
+          password,
+          isActive: false,
+          isClient,
+          isFreelancer,
+          profilePicture: profilePicture || ''
+        })
+      });
+      if (!res.ok) throw new Error('Registration failed');
+      const data = await res.json();
+      setUser(data.user || null);
+      localStorage.setItem('user', JSON.stringify(data.user));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const forgotPassword = async (email: string, newPassword: string) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/forget-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, newPassword })
+      });
+      if (!res.ok) throw new Error('Failed to send reset email');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPassword = async (email: string, oldPassword: string, newPassword: string) => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ email, oldPassword, newPassword })
+      });
+      if (!res.ok) throw new Error('Failed to reset password');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   const updateProfile = (updates: Partial<User>) => {
@@ -142,7 +162,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     updateProfile,
-    isLoading
+    isLoading,
+    forgotPassword,
+    resetPassword
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

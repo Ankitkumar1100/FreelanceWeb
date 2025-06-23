@@ -6,10 +6,16 @@ import { Mail, Lock, User, Eye, EyeOff, Loader } from 'lucide-react';
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
+    phone: '',
+    location: '',
+    dob: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'freelancer' as 'client' | 'freelancer'
+    isClient: false,
+    isFreelancer: true,
+    profilePicture: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -18,10 +24,11 @@ const Register: React.FC = () => {
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,7 +46,18 @@ const Register: React.FC = () => {
     }
 
     try {
-      await register(formData.email, formData.password, formData.name, formData.role);
+      await register(
+        formData.name,
+        formData.phone,
+        formData.location,
+        formData.dob,
+        formData.username,
+        formData.email,
+        formData.password,
+        formData.isClient,
+        formData.isFreelancer,
+        formData.profilePicture
+      );
       navigate('/dashboard');
     } catch (err) {
       setError('Registration failed. Please try again.');
@@ -85,7 +103,69 @@ const Register: React.FC = () => {
                 />
               </div>
             </div>
-
+            {/* Phone */}
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Phone
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="text"
+                required
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                placeholder="Enter your phone number"
+              />
+            </div>
+            {/* Location */}
+            <div>
+              <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Location
+              </label>
+              <input
+                id="location"
+                name="location"
+                type="text"
+                required
+                value={formData.location}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                placeholder="Enter your location"
+              />
+            </div>
+            {/* Date of Birth */}
+            <div>
+              <label htmlFor="dob" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Date of Birth
+              </label>
+              <input
+                id="dob"
+                name="dob"
+                type="date"
+                required
+                value={formData.dob}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+              />
+            </div>
+            {/* Username */}
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Username
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                required
+                value={formData.username}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                placeholder="Choose a username"
+              />
+            </div>
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -105,24 +185,44 @@ const Register: React.FC = () => {
                 />
               </div>
             </div>
-
-            {/* Role Selection */}
+            {/* Profile Picture */}
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                I want to
+              <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Profile Picture URL (optional)
               </label>
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
+              <input
+                id="profilePicture"
+                name="profilePicture"
+                type="url"
+                value={formData.profilePicture}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
-              >
-                <option value="freelancer">Work as a Freelancer</option>
-                <option value="client">Hire Freelancers</option>
-              </select>
+                placeholder="https://example.com/image.jpg"
+              />
             </div>
-
+            {/* Role Selection */}
+            <div className="flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="isClient"
+                  checked={formData.isClient}
+                  onChange={handleChange}
+                  className="mr-2"
+                />
+                Register as Client
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="isFreelancer"
+                  checked={formData.isFreelancer}
+                  onChange={handleChange}
+                  className="mr-2"
+                />
+                Register as Freelancer
+              </label>
+            </div>
             {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -149,7 +249,6 @@ const Register: React.FC = () => {
                 </button>
               </div>
             </div>
-
             {/* Confirm Password */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

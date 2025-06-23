@@ -16,7 +16,7 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      await login(email, password);
+      await login(email, password, email);
       navigate('/dashboard');
     } catch (err) {
       setError('Invalid email or password');
@@ -153,9 +153,9 @@ const Login: React.FC = () => {
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+              <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
                 Forgot your password?
-              </a>
+              </Link>
             </div>
           </div>
 
